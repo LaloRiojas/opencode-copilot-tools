@@ -1,28 +1,10 @@
 import type { TuiPlugin } from "@opencode-ai/plugin/tui"
 import { PricesDialog } from "./prices-dialog.js"
-import { fetchCopilotUsedPercent } from "./quota.js"
-import { createBarSlotPlugin, setBarState } from "./bar.js"
+import { createBarSlotPlugin } from "./bar.js"
+import { createSidebarSlotPlugin } from "./sidebar.js"
+import { refreshQuota } from "./store.js"
 
 const INTERVAL_MS = 5 * 60_000
-const MIN_GAP_MS = 15_000
-let last = 0
-let inFlight: Promise<void> | null = null
-
-function refresh(force = false): Promise<void> {
-  if (inFlight) return inFlight
-  if (!force && Date.now() - last < MIN_GAP_MS) return Promise.resolve()
-  inFlight = (async () => {
-    try {
-      setBarState({ status: "ready", percent: await fetchCopilotUsedPercent() })
-    } catch {
-      setBarState({ status: "error" })
-    } finally {
-      last = Date.now()
-      inFlight = null
-    }
-  })()
-  return inFlight
-}
 
 function setupPrices(api: Parameters<TuiPlugin>[0]) {
   // Uses the (deprecated but still supported) api.command.register because it
@@ -42,15 +24,23 @@ function setupPrices(api: Parameters<TuiPlugin>[0]) {
   if (off) api.lifecycle.onDispose(off)
 }
 
-async function setupUsageBar(api: Parameters<TuiPlugin>[0]) {
+function setupUsageBar(api: Parameters<TuiPlugin>[0]) {
   api.slots.register(createBarSlotPlugin(() => api.theme.current))
-  const off = api.event.on("session.idle", () => void refresh())
-  const timer = setInterval(() => void refresh(true), INTERVAL_MS)
+}
+
+function setupSidebar(api: Parameters<TuiPlugin>[0]) {
+  api.slots.register(createSidebarSlotPlugin(() => api.theme.current))
+}
+
+// One refresh loop (start, session.idle, every 5 min) feeds bar and sidebar.
+function setupRefresh(api: Parameters<TuiPlugin>[0]) {
+  const off = api.event.on("session.idle", () => void refreshQuota())
+  const timer = setInterval(() => void refreshQuota(true), INTERVAL_MS)
   api.lifecycle.onDispose(() => {
     off()
     clearInterval(timer)
   })
-  await refresh(true)
+  void refreshQuota(true)
 }
 
 const tui: TuiPlugin = async (api) => {
@@ -58,7 +48,13 @@ const tui: TuiPlugin = async (api) => {
     setupPrices(api)
   } catch {}
   try {
-    await setupUsageBar(api)
+    setupUsageBar(api)
+  } catch {}
+  try {
+    setupSidebar(api)
+  } catch {}
+  try {
+    setupRefresh(api)
   } catch {}
 }
 

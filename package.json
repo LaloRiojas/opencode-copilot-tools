@@ -2,18 +2,20 @@
   "name": "opencode-copilot-tools",
   "version": "0.1.0",
   "type": "module",
-  "description": "OpenCode TUI plugin: Copilot usage in the bottom bar and /prices model price list",
+  "description": "OpenCode TUI plugin: Copilot usage in the bottom bar, sidebar widget, and /prices model price list",
   "license": "MIT",
   "exports": {
     "./tui": "./tui.ts"
   },
   "peerDependencies": {
     "@opencode-ai/plugin": "*",
+    "@opentui/core": "*",
     "@opentui/solid": "*",
     "solid-js": "*"
   },
   "devDependencies": {
     "@opencode-ai/plugin": "*",
+    "@opentui/core": "*",
     "@opentui/solid": "*",
     "solid-js": "*",
     "typescript": "*"

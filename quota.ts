@@ -30,10 +30,37 @@ async function readToken(): Promise<string | null> {
   }
 }
 
-type Snap = { unlimited?: boolean; percent_remaining?: number }
+export interface QuotaSnapshot {
+  unlimited: boolean
+  percent_remaining: number
+  remaining: number
+  entitlement: number
+}
 
-/** Returns percent USED (0-100) of the primary metered bucket, or null if unlimited. */
-export async function fetchCopilotUsedPercent(): Promise<number | null> {
+export interface CopilotQuota {
+  plan: string
+  resetDate?: string // YYYY-MM-DD
+  snapshots: {
+    chat?: QuotaSnapshot
+    completions?: QuotaSnapshot
+    premium_interactions?: QuotaSnapshot
+  }
+}
+
+type RawSnap = { unlimited?: unknown; percent_remaining?: unknown; remaining?: unknown; entitlement?: unknown }
+
+function pick(s: RawSnap | undefined): QuotaSnapshot | undefined {
+  if (!s) return undefined
+  return {
+    unlimited: Boolean(s.unlimited),
+    percent_remaining: Number(s.percent_remaining ?? 0),
+    remaining: Number(s.remaining ?? 0),
+    entitlement: Number(s.entitlement ?? 0),
+  }
+}
+
+/** One request to the Copilot endpoint; shared by the bar and the sidebar. */
+export async function fetchCopilotQuota(): Promise<CopilotQuota> {
   const token = await readToken()
   if (!token) throw new QuotaUnavailableError("no_token")
   let res: Response
@@ -51,15 +78,32 @@ export async function fetchCopilotUsedPercent(): Promise<number | null> {
   }
   if (res.status === 401 || res.status === 403) throw new QuotaUnavailableError("unauthorized")
   if (!res.ok) throw new QuotaUnavailableError("bad_response")
-  let body: { quota_snapshots?: Record<string, Snap | undefined> }
+  let body: {
+    copilot_plan?: unknown
+    quota_reset_date?: unknown
+    quota_snapshots?: Record<string, RawSnap | undefined>
+  }
   try {
     body = (await res.json()) as typeof body
   } catch {
     throw new QuotaUnavailableError("bad_response")
   }
   const s = body.quota_snapshots ?? {}
-  const pick = [s.premium_interactions, s.chat, s.completions].find((x) => x && !x.unlimited)
-  if (!pick) return null
-  const remaining = Number(pick.percent_remaining ?? 0)
-  return Math.max(0, Math.min(100, Math.round(100 - remaining)))
+  return {
+    plan: String(body.copilot_plan ?? "unknown"),
+    resetDate: body.quota_reset_date ? String(body.quota_reset_date) : undefined,
+    snapshots: {
+      chat: pick(s.chat),
+      completions: pick(s.completions),
+      premium_interactions: pick(s.premium_interactions),
+    },
+  }
+}
+
+/** Percent USED (0-100) of the primary metered bucket, or null if all unlimited. */
+export function usedPercent(q: CopilotQuota): number | null {
+  const { premium_interactions, chat, completions } = q.snapshots
+  const p = [premium_interactions, chat, completions].find((x) => x && !x.unlimited)
+  if (!p) return null
+  return Math.max(0, Math.min(100, Math.round(100 - p.percent_remaining)))
 }

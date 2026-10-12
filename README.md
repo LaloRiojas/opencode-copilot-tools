@@ -1,13 +1,17 @@
 # opencode-copilot-tools
 
-An [OpenCode](https://opencode.ai) TUI plugin with two independent features
-(if one fails to set up, the other still works):
+An [OpenCode](https://opencode.ai) TUI plugin with three independent features
+(if one fails to set up, the others still work):
 
 1. **Copilot usage bar.** Shows GitHub Copilot premium usage (e.g. `Copilot 42%`)
    in the bottom bar (`app_bottom` slot, visible on home and inside sessions).
    Color: muted <70%, warning 70-90%, error >=90%. Shows `Copilot --` on error.
    Refreshes on start, on `session.idle`, and every 5 minutes.
-2. **`/prices` command** (also in the `ctrl+p` palette as "Models with prices").
+2. **Copilot sidebar widget.** A "Copilot Quota" section in the sidebar
+   (`sidebar_content` slot, just above Context): plan, usage progress bar,
+   premium used/entitlement, and days until reset. The sidebar only shows
+   inside a chat session, not on the home screen.
+3. **`/prices` command** (also in the `ctrl+p` palette as "Models with prices").
    Opens a read-only list of every available model, grouped by provider, with the
    token price in the footer.
    - Footer shows `$input/$output` per 1M tokens, or `Free` when both are 0.
@@ -38,11 +42,12 @@ loaded (`api.state.provider`):
 
 Check figures against your provider's published pricing before relying on them.
 
-## Usage bar data
+## Usage bar and sidebar data
 
 Uses the Copilot token already stored by OpenCode (`auth.json`); it is never
 logged or displayed. Calls the undocumented `copilot_internal/user` endpoint,
-which may change.
+which may change. The bar and the sidebar share one fetched state, so only
+one request is made per refresh.
 
 ## Limitations
 
@@ -55,7 +60,7 @@ which may change.
 
 ## Credits
 
-Quota fetching adapted from
+Quota fetching and the sidebar widget adapted from
 [fitri/opencode-copilot-usage-plugin](https://github.com/fitri/opencode-copilot-usage-plugin)
 by Fitri Rahim (MIT, see LICENSE).
 
