@@ -5,6 +5,7 @@
   "description": "OpenCode TUI plugin: Copilot usage in the bottom bar, sidebar widget, and /prices model price list",
   "license": "MIT",
   "exports": {
+    "./server": "./server.ts",
     "./tui": "./tui.ts"
   },
   "peerDependencies": {

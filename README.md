@@ -20,6 +20,16 @@ An [OpenCode](https://opencode.ai) TUI plugin with three independent features
    - Selecting a model shows a toast with the full price. It never changes your model or config.
    - `/prices` lists all providers' models, not only Copilot.
 
+4. **Prices in `/models` names.** A server plugin (`server.ts`) appends the
+   price per 1M tokens to GitHub Copilot model names, e.g.
+   `Claude Sonnet 5.5 ($2/$10)`, so the built-in `/models` dialog shows them.
+   Caveats: the name changes everywhere it is displayed (sidebar, prompt
+   footer); prices come from the Copilot API `/models` (`billing.token_prices`);
+   only Copilot models are covered (not other providers); it fails silently
+   (4s timeout) and a name you set in config wins. This is a server plugin, so
+   register it with `opencode plugin --global <path>`, which adds it to both
+   `opencode.json` (server) and `tui.json` (TUI).
+
 ## Install
 
 The plugin is not published to npm. Clone it and register the local path:
