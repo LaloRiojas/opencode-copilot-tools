@@ -7,7 +7,10 @@
  */
 
 import { Show } from "solid-js"
-import { TextAttributes } from "@opentui/core"
+
+// TextAttributes.BOLD from @opentui/core (= 1). Inlined: @opentui/core is not
+// resolvable from a standalone file:// plugin dir at runtime.
+const BOLD = 1
 import type { TuiThemeCurrent } from "@opencode-ai/plugin/tui"
 import type { CopilotQuota, QuotaSnapshot } from "./quota.js"
 import { quotaState as state } from "./store.js"
@@ -46,7 +49,7 @@ function SidebarQuotaSection(props: { theme: () => TuiThemeCurrent }) {
   return (
     <box style={{ flexDirection: "column", marginTop: 1 }}>
       {/* Bold header, matching native section titles */}
-      <text style={{ fg: t().text, attributes: TextAttributes.BOLD }}>
+      <text style={{ fg: t().text, attributes: BOLD }}>
         Copilot Quota
       </text>
 
